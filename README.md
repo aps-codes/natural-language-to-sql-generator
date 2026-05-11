@@ -1,25 +1,50 @@
-# AI Text-to-SQL Generator
+# Natural Language to SQL Query Generator using Groq LLM
 
-AI-powered application that converts natural language into SQL queries using Groq LLM and SQLite.
+An AI-powered application that converts natural language questions into SQL queries using Groq LLM and SQLite.
 
 ## Features
-- Natural language to SQL conversion
+
+- Convert natural language into SQL queries
 - SQLite database integration
-- Streamlit user interface
 - Fast AI-generated responses
+- Interactive user interface
+- Real-time query generation
 
 ## Technologies Used
+
 - Python
 - Streamlit
 - SQLite
-- Groq API
+- Groq LLM
+
+## Project Structure
+
+```bash
+├── app.py
+├── database.py
+├── requirements.txt
+├── templates/
+├── static/
+└── school.db
+```
 
 ## Run Locally
 
 Install dependencies:
 
+```bash
 pip install -r requirements.txt
+```
 
-Run app:
+Run the application:
 
+```bash
 streamlit run app.py
+```
+
+## Future Improvements
+
+- MySQL/PostgreSQL support
+- Better UI design
+- Multi-table query support
+- Chat history feature
