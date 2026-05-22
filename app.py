@@ -1,6 +1,7 @@
 from groq import Groq
 import sqlite3
 import os
+import pandas as pd
 from dotenv import load_dotenv
 import streamlit as st
 
@@ -12,90 +13,111 @@ client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-# page title
-st.set_page_config(page_title="Natural Language to SQL Query Generator using Groq LLM")
+# page config
+st.set_page_config(
+    page_title="AI-Powered Text-to-SQL Generator",
+    page_icon="database",
+    layout="centered"
+)
 
-st.title("Natural Language to SQL Query Generator using Groq LLM")
-st.write("Ask questions about school database")
+st.title("AI-Powered Text-to-SQL Generator")
+st.write("Convert natural language into executable SQL queries using Groq LLM")
 
-# generate sql query
+# ── schema info shown to user ────────────────────────────────────────────────
+with st.expander("View Database Schema (STUDENTS table)"):
+    st.code("""
+Table: STUDENTS
+Columns:
+  student_id   INTEGER  (auto)
+  student_name TEXT
+  class        INTEGER  (9, 10, 11, 12)
+  roll_no      INTEGER
+  gender       TEXT     (Male / Female)
+  maths_marks  INTEGER
+  science_marks INTEGER
+  english_marks INTEGER
+  percentage   REAL
+  attendance   INTEGER
+  result       TEXT     (Pass / Fail)
+    """)
+
+# ── generate sql query ────────────────────────────────────────────────────────
 def get_sql_query(question):
-
     prompt = f"""
-    You are an expert SQL query generator.
+You are an expert SQLite SQL query generator.
 
-    Convert the following English question into a valid SQLite SQL query.
+Convert the following English question into a valid SQLite SQL query.
 
-    Database Name: school.db
+Database: school.db
+Table: STUDENTS
+Columns: student_id, student_name, class, roll_no, gender,
+         maths_marks, science_marks, english_marks, percentage, attendance, result
 
-    Table Name: STUDENTS
+Important rules:
+- Use only valid SQLite syntax.
+- To get the top N students PER class, use a subquery with ROW_NUMBER() or a correlated subquery, NOT just ORDER BY + LIMIT.
+- Return ONLY the raw SQL query. No explanation, no markdown, no backticks.
 
-    Columns:
-    student_id
-    student_name
-    class
-    roll_no
-    gender
-    maths_marks
-    science_marks
-    english_marks
-    percentage
-    attendance
-    result
-
-    Only give SQL query.
-    Do not explain anything.
-
-    Question:
-    {question}
-    """
-
+Question: {question}
+"""
     response = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
+        messages=[{"role": "user", "content": prompt}],
         model="llama-3.3-70b-versatile",
     )
-
     query = response.choices[0].message.content
-
+    # strip any accidental markdown fences
     query = query.replace("```sql", "").replace("```", "").strip()
-
     return query
 
-# run sql query
+
+# ── run sql and return (dataframe, error_message) ────────────────────────────
 def run_sql_query(query):
+    try:
+        connection = sqlite3.connect("school.db")
+        cursor = connection.cursor()
+        cursor.execute(query)
+        rows = cursor.fetchall()
 
-    connection = sqlite3.connect("school.db")
+        # get column names from the ACTUAL query result, not a hardcoded list
+        col_names = [description[0] for description in cursor.description]
+        connection.close()
 
-    cursor = connection.cursor()
+        if not rows:
+            return None, None, "Query executed successfully but returned no rows."
 
-    cursor.execute(query)
+        df = pd.DataFrame(rows, columns=col_names)
+        return df, None, None
 
-    rows = cursor.fetchall()
+    except Exception as e:
+        return None, str(e), None
 
-    connection.close()
 
-    return rows
+# ── UI ────────────────────────────────────────────────────────────────────────
+st.markdown("---")
+question = st.text_input(
+    "Enter Your Question",
+    placeholder="e.g. show me top 5 students of each class"
+)
 
-# input box
-question = st.text_input("Enter Your Question")
+if st.button("Generate Result", type="primary"):
+    if not question.strip():
+        st.warning("Please enter a question before clicking Generate Result.")
+    else:
+        with st.spinner("Generating SQL query..."):
+            sql_query = get_sql_query(question)
 
-# button
-if st.button("Generate Result"):
+        st.subheader("Generated SQL Query")
+        st.code(sql_query, language="sql")
 
-    sql_query = get_sql_query(question)
+        with st.spinner("Running query on database..."):
+            df, error, info = run_sql_query(sql_query)
 
-    st.subheader("Generated SQL Query")
-    st.code(sql_query, language="sql")
+        st.subheader("Query Result")
 
-    result = run_sql_query(sql_query)
-
-    st.subheader("Query Result")
-
-    for row in result:
-        st.write(row)
-
+        if error:
+            st.error(f"Error: {error}")
+        elif info:
+            st.info(info)
+        else:
+            st.success(f"{len(df)} row(s) returned")
+            st.dataframe(df, use_container_width=True)

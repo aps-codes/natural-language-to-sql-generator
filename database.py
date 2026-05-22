@@ -120,7 +120,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 # insert all data
 cursor.executemany(insert_query, students_data)
 
-# save changes
+# save changes       
 connection.commit()
 
 print("Student data inserted successfully")
