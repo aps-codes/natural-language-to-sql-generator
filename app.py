@@ -55,7 +55,8 @@ Columns: student_id, student_name, class, roll_no, gender,
 
 Important rules:
 - Use only valid SQLite syntax.
-- To get the top N students PER class, use a subquery with ROW_NUMBER() or a correlated subquery, NOT just ORDER BY + LIMIT.
+- Use ROW_NUMBER() only for group-wise ranking queries (e.g. topper of each class or top 5 students of each class).
+- For simple top N queries, use ORDER BY + LIMIT.
 - Return ONLY the raw SQL query. No explanation, no markdown, no backticks.
 
 Question: {question}
