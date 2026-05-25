@@ -3,7 +3,7 @@
 Converts plain English questions into executable SQL queries instantly.  
 Type a question → AI generates the SQL → results displayed from the database.
 
-**Live Demo:** Coming Soon
+**Live Demo:** (https://aps-nl-to-sql.streamlit.app)
 
 ---
 
